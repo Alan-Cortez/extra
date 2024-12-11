@@ -3,15 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Usuarios</title>
+    <title>Gestión de Usuarios</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://js.pusher.com/7.0/pusher.min.js"></script>
 </head>
 <body>
-    <h1>Lista de Usuarios</h1>
-    <ul>
-        {% for usuario in usuarios %}
-            <li>{{ usuario['nombre'] }} - {{ usuario['email'] }}</li>
-        {% endfor %}
-    </ul>
-    <a href="{{ url_for('usuarios.crear') }}">Crear nuevo usuario</a>
+    <div class="container mt-4">
+        <h1>Gestión de Usuarios</h1>
+
+        <form id="formNuevoUsuario">
+            <div class="form-group">
+                <label for="txtUsuarioFA">Nombre de Usuario</label>
+                <input type="text" class="form-control" id="txtUsuarioFA" name="txtUsuarioFA" required>
+            </div>
+            <div class="form-group">
+                <label for="txtContrasenaFA">Contraseña</label>
+                <input type="password" class="form-control" id="txtContrasenaFA" name="txtContrasenaFA" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Usuario</button>
+        </form>
+
+        <h2 class="mt-4">Lista de Usuarios</h2>
+        <ul id="listaUsuarios" class="list-group mt-3">
+            <!-- Los usuarios se cargarán aquí mediante JavaScript -->
+        </ul>
+    </div>
+
+    <script>
+        // Conexión a Pusher
+        Pusher.logToConsole = true;
+        var pusher = new Pusher('ffa9ea426828188c22c1', {
+            cluster: 'us2'
+        });
+        var channel = pusher.subscribe('registrosTiempoReal');
+        channel.bind('registroTiempoReal', function(data) {
+            cargarUsuarios();
+        });
+
+        // Función para cargar usuarios
+        function cargarUsuarios() {
+            fetch('/usuarios/buscar')
+                .then(response => response.json())
+                .then(data => {
+                    const lista = document.getElementById("listaUsuarios");
+                    lista.innerHTML = "";
+                    data.forEach(function(usuario) {
+                        const item = document.createElement("li");
+                        item.classList.add("list-group-item");
+                        item.textContent = usuario[1]; // Nombre de usuario
+                        lista.appendChild(item);
+                    });
+                });
+        }
+
+        // Enviar formulario de nuevo usuario
+        document.getElementById("formNuevoUsuario").addEventListener("submit", function(event) {
+            event.preventDefault();
+            const usuario = document.getElementById("txtUsuarioFA").value;
+            const contrasena = document.getElementById("txtContrasenaFA").value;
+
+            fetch('/usuarios/guardar', {
+                method: 'POST',
+                body: new URLSearchParams({
+                    'txtUsuarioFA': usuario,
+                    'txtContrasenaFA': contrasena
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    cargarUsuarios();
+                }
+            });
+        });
+    </script>
 </body>
 </html>
